@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Rainfall Predictor 🌦️</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: url('https://img.freepik.com/free-photo/forest-distance_53876-88953.jpg') no-repeat center center fixed;
+      background-size: cover;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .widget {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      padding: 30px;
+      width: 100%;
+      max-width: 400px;
+      color: white;
+      text-align: center;
+    }
+
+    .widget h1 {
+      font-size: 1.8rem;
+      margin-bottom: 20px;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.6);
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      margin-bottom: 15px;
+      font-size: 16px;
+      outline: none;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #0077cc;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #005fa3;
+    }
+
+    .info-box {
+      margin-top: 20px;
+      background-color: rgba(255, 255, 255, 0.2);
+      padding: 15px;
+      border-radius: 12px;
+      text-align: left;
+    }
+
+    #output {
+      background-color: rgba(0, 0, 0, 0.85); /* darker background */
+      color: #fff;
+    }
+
+    .info-box h3 {
+      margin-bottom: 10px;
+      color: #fff;
+    }
+
+    .info-box p {
+      margin-bottom: 6px;
+      color: #f0f0f0;
+    }
+
+    .label {
+      font-weight: bold;
+    }
+
+    code {
+      font-weight: bold;
+      font-size: 1.1em;
+      color: #00ffcc;
+    }
+  </style>
+</head>
+<body>
+  <div class="widget">
+    <h1>🌦️ Rainfall Predictor</h1>
+    <input type="text" id="city" placeholder="Enter city..." />
+    <button onclick="getPrediction()">Get Weather & Predict</button>
+
+    <div id="weather-info" class="info-box" style="display: none;"></div>
+    <div id="output" class="info-box" style="display: none;"></div>
+  </div>
+
+  <script>
+    async function getPrediction() {
+      const city = document.getElementById("city").value.trim();
+      if (!city) {
+        alert("Please enter a city name.");
+        return;
+      }
+
+      document.getElementById("weather-info").style.display = "none";
+      document.getElementById("output").style.display = "none";
+
+      const response = await fetch(
+        "https://weatherapi-com.p.rapidapi.com/current.json?q=" + city,
+        {
+          method: "GET",
+          headers: {
+            "x-rapidapi-key": "de1a61fc6cmshf33de1e935c763dp1988fcjsn508fb92e5f90",
+            "x-rapidapi-host": "weatherapi-com.p.rapidapi.com",
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!data.current) {
+        alert("City not found or error fetching data.");
+        return;
+      }
+
+      const weather = data.current;
+
+      document.getElementById("weather-info").style.display = "block";
+      document.getElementById("weather-info").innerHTML = `
+        <h3>🌤️ Weather in ${city}</h3>
+        <p><span class="label">Temperature:</span> ${weather.temp_c} °C</p>
+        <p><span class="label">Feels Like:</span> ${weather.feelslike_c} °C</p>
+        <p><span class="label">Humidity:</span> ${weather.humidity}%</p>
+        <p><span class="label">Pressure:</span> ${weather.pressure_mb} mb</p>
+        <p><span class="label">Cloud:</span> ${weather.cloud}%</p>
+        <p><span class="label">Visibility:</span> ${weather.vis_km} km</p>
+        <p><span class="label">Wind:</span> ${weather.wind_kph} kph at ${weather.wind_degree}°</p>
+      `;
+
+      const payload = {
+        pressure: weather.pressure_mb,
+        dewpoint: weather.feelslike_c,
+        humidity: weather.humidity,
+        cloud: weather.cloud,
+        sunshine: weather.vis_km,
+        winddirection: weather.wind_degree,
+        windspeed: weather.wind_kph,
+      };
+
+      const predictRes = await fetch("/predict", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await predictRes.json();
+
+      document.getElementById("output").style.display = "block";
+      if (result.error) {
+        document.getElementById("output").innerHTML = `<p style="color:red;">Error: ${result.error}</p>`;
+      } else {
+        const isRain = result.prediction === 1;
+        const emoji = isRain ? "🌧️" : "☀️";
+        const message = isRain ? "Rain Expected" : "No Rain Expected";
+        const predictionText = isRain ? "Yes" : "No";
+
+        document.getElementById("output").innerHTML = `
+          <h3>${emoji} Prediction Result</h3>
+          <p><strong>${message}</strong></p>
+          <p>Will it rain? <code>${predictionText}</code></p>
+        `;
+      }
+    }
+  </script>
+</body>
+</html>
